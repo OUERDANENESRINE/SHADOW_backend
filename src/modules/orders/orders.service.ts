@@ -6,6 +6,7 @@ import { OrderItem } from '../order-items/order-item.entity';
 import { Product } from '../products/product.entity';
 import { User } from '../users/user.entity';
 import { CreateOrderDto } from './create-order.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class OrdersService {
@@ -19,25 +20,22 @@ export class OrdersService {
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,
     private readonly dataSource: DataSource,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
-  async create(createOrderDto: CreateOrderDto): Promise<Order> {
+  async create(userId: number, createOrderDto: CreateOrderDto): Promise<Order> {
     const user = await this.usersRepository.findOne({
-      where: { id: createOrderDto.userId },
+      where: { id: userId },
     });
     if (!user) {
-      throw new NotFoundException(
-        `Utilisateur #${createOrderDto.userId} introuvable`,
-      );
+      throw new NotFoundException(`Utilisateur #${userId} introuvable`);
     }
 
     if (!createOrderDto.items || createOrderDto.items.length === 0) {
       throw new BadRequestException('La commande doit contenir au moins un produit');
     }
 
-    // On utilise une transaction : soit tout réussit (commande + stock décrémenté),
-    // soit tout échoue et rien n'est enregistré (évite les incohérences).
-    return this.dataSource.transaction(async (manager) => {
+    const savedOrder = await this.dataSource.transaction(async (manager) => {
       let total = 0;
       const orderItems: OrderItem[] = [];
 
@@ -76,45 +74,40 @@ export class OrdersService {
 
       return manager.save(order);
     });
+
+    // Notification envoyée après la transaction, pour ne pas la faire échouer
+    // si l'envoi de notification pose problème.
+    await this.notificationsService.notifyAdminsOfNewOrder(savedOrder);
+
+    return savedOrder;
   }
 
   async findAll(): Promise<Order[]> {
-  return this.ordersRepository.find({
-    relations: {
-      user: true,
-      items: {
-        product: true,
+    return this.ordersRepository.find({
+      relations: {
+        user: true,
+        items: {
+          product: true,
+        },
       },
-    },
-  });
-}
-
-async findOne(id: number): Promise<Order> {
-  const order = await this.ordersRepository.findOne({
-    where: { id },
-    relations: {
-      user: true,
-      items: {
-        product: true,
-      },
-    },
-  });
-  if (!order) {
-    throw new NotFoundException(`Commande #${id} introuvable`);
+    });
   }
-  return order;
-}
 
-async findByUser(userId: number): Promise<Order[]> {
-  return this.ordersRepository.find({
-    where: { user: { id: userId } },
-    relations: {
-      items: {
-        product: true,
+  async findOne(id: number): Promise<Order> {
+    const order = await this.ordersRepository.findOne({
+      where: { id },
+      relations: {
+        user: true,
+        items: {
+          product: true,
+        },
       },
-    },
-  });
-}
+    });
+    if (!order) {
+      throw new NotFoundException(`Commande #${id} introuvable`);
+    }
+    return order;
+  }
 
   async updateStatus(id: number, statut: OrderStatus): Promise<Order> {
     const order = await this.findOne(id);
@@ -122,5 +115,14 @@ async findByUser(userId: number): Promise<Order[]> {
     return this.ordersRepository.save(order);
   }
 
-  
+  async findByUser(userId: number): Promise<Order[]> {
+    return this.ordersRepository.find({
+      where: { user: { id: userId } },
+      relations: {
+        items: {
+          product: true,
+        },
+      },
+    });
+  }
 }
