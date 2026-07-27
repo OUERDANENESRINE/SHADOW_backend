@@ -1,4 +1,13 @@
-import { Controller, Post, Body, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Request,
+  Response,
+  Res,
+} from '@nestjs/common';
+import type { Response as ExpressResponse } from 'express';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './login.dto';
@@ -13,18 +22,48 @@ export class AuthController {
   ) {}
 
   @Post('register')
-  async register(@Body() createUserDto: CreateUserDto) {
+  async register(
+    @Body() createUserDto: CreateUserDto,
+    @Res({ passthrough: true }) res: ExpressResponse,
+  ) {
     const user = await this.usersService.create(createUserDto);
-    return this.authService.login(user);
+    const { access_token, user: userData } = await this.authService.login(user);
+
+    res.cookie('access_token', access_token, {
+      httpOnly: true,
+      secure: false, // true en production (HTTPS uniquement)
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60 * 1000, // 24h, en millisecondes
+    });
+
+    return { user: userData };
   }
 
   @Post('login')
-  async login(@Body() loginDto: LoginDto) {
+  async login(
+    @Body() loginDto: LoginDto,
+    @Res({ passthrough: true }) res: ExpressResponse,
+  ) {
     const user = await this.authService.validateUser(
       loginDto.email,
       loginDto.motDePasse,
     );
-    return this.authService.login(user);
+    const { access_token, user: userData } = await this.authService.login(user);
+
+    res.cookie('access_token', access_token, {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60 * 1000,
+    });
+
+    return { user: userData };
+  }
+
+  @Post('logout')
+  logout(@Res({ passthrough: true }) res: ExpressResponse) {
+    res.clearCookie('access_token');
+    return { message: 'Déconnecté' };
   }
 
   @UseGuards(JwtAuthGuard)
