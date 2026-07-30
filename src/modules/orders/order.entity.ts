@@ -21,8 +21,11 @@ export class Order {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @ManyToOne(() => User, (user) => user.orders)
-  user!: User;
+  @ManyToOne(() => User, (user) => user.orders, { nullable: true })
+  user!: User | null;
+
+  @Column({ nullable: true })
+  clientNom!: string;
 
   @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.EN_ATTENTE })
   statut!: OrderStatus;

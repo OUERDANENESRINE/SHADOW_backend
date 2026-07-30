@@ -10,7 +10,7 @@ import {
   Request,
 } from '@nestjs/common';
 import { OrdersService } from './orders.service';
-import { CreateOrderDto } from './create-order.dto';
+import { CreateOrderDto, CreateWalkInOrderDto } from './create-order.dto';
 import { OrderStatus } from './order.entity';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -25,6 +25,13 @@ export class OrdersController {
   @Post()
   create(@Request() req: any, @Body() createOrderDto: CreateOrderDto) {
     return this.ordersService.create(req.user.id, createOrderDto);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Post('walk-in')
+  createWalkIn(@Body() dto: CreateWalkInOrderDto) {
+    return this.ordersService.createWalkIn(dto);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

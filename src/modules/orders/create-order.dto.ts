@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsNumber, Min, ValidateNested } from 'class-validator';
+import { IsArray, IsNotEmpty, IsNumber, IsString, Min, ValidateNested } from 'class-validator';
 
 export class OrderItemDto {
   @IsNumber({}, { message: "L'ID produit doit être un nombre" })
@@ -11,6 +11,17 @@ export class OrderItemDto {
 }
 
 export class CreateOrderDto {
+  @IsArray({ message: 'Les items doivent être un tableau' })
+  @ValidateNested({ each: true })
+  @Type(() => OrderItemDto)
+  items!: OrderItemDto[];
+}
+
+export class CreateWalkInOrderDto {
+  @IsNotEmpty({ message: 'Le nom du client est requis' })
+  @IsString()
+  clientNom!: string;
+
   @IsArray({ message: 'Les items doivent être un tableau' })
   @ValidateNested({ each: true })
   @Type(() => OrderItemDto)
