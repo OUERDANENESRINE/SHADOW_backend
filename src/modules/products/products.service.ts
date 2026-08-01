@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Product } from './product.entity';
+import { ProductVariant } from './product-variant.entity';
 import { CreateProductDto } from './create-product.dto';
 import { UpdateProductDto } from './update-product.dto';
 
@@ -10,45 +11,55 @@ export class ProductsService {
   constructor(
     @InjectRepository(Product)
     private readonly productsRepository: Repository<Product>,
+    @InjectRepository(ProductVariant)
+    private readonly variantsRepository: Repository<ProductVariant>,
   ) {}
 
-  async create(createProductDto: CreateProductDto): Promise<Product> {
-    const product = this.productsRepository.create(createProductDto);
+  async create(dto: CreateProductDto): Promise<Product> {
+    const product = this.productsRepository.create({
+      nom: dto.nom,
+      description: dto.description,
+      prix: dto.prix,
+      imageUrl: dto.imageUrl,
+      variants: dto.variants.map((v) => this.variantsRepository.create(v)),
+    });
     return this.productsRepository.save(product);
   }
 
   async findAll(): Promise<Product[]> {
-    return this.productsRepository.find();
+    return this.productsRepository.find({ relations: { variants: true } });
   }
 
   async findOne(id: number): Promise<Product> {
-    const product = await this.productsRepository.findOne({ where: { id } });
+    const product = await this.productsRepository.findOne({
+      where: { id },
+      relations: { variants: true },
+    });
     if (!product) {
       throw new NotFoundException(`Produit #${id} introuvable`);
     }
     return product;
   }
 
-  async update(id: number, updateProductDto: UpdateProductDto): Promise<Product> {
+  async update(id: number, dto: UpdateProductDto): Promise<Product> {
     const product = await this.findOne(id);
-    Object.assign(product, updateProductDto);
+
+    if (dto.nom !== undefined) product.nom = dto.nom;
+    if (dto.description !== undefined) product.description = dto.description;
+    if (dto.prix !== undefined) product.prix = dto.prix;
+    if (dto.imageUrl !== undefined) product.imageUrl = dto.imageUrl;
+
+    if (dto.variants) {
+      // On remplace entièrement l'ancienne liste de variantes par la nouvelle
+      await this.variantsRepository.delete({ product: { id } });
+      product.variants = dto.variants.map((v) => this.variantsRepository.create(v));
+    }
+
     return this.productsRepository.save(product);
   }
 
   async remove(id: number): Promise<void> {
     const product = await this.findOne(id);
     await this.productsRepository.remove(product);
-  }
-
-  // Utile pour orders.service.ts plus tard : vérifier et décrémenter le stock
-  async decreaseStock(id: number, quantite: number): Promise<Product> {
-    const product = await this.findOne(id);
-    if (product.stock < quantite) {
-      throw new BadRequestException(
-        `Stock insuffisant pour "${product.nom}" (disponible: ${product.stock}, demandé: ${quantite})`,
-      );
-    }
-    product.stock -= quantite;
-    return this.productsRepository.save(product);
   }
 }

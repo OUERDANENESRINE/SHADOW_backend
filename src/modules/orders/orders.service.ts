@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { Order, OrderStatus } from './order.entity';
 import { OrderItem } from '../order-items/order-item.entity';
-import { Product } from '../products/product.entity';
+import { ProductVariant } from '../products/product-variant.entity';
 import { User } from '../users/user.entity';
 import { CreateOrderDto, CreateWalkInOrderDto, OrderItemDto } from './create-order.dto';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -15,8 +15,8 @@ export class OrdersService {
     private readonly ordersRepository: Repository<Order>,
     @InjectRepository(OrderItem)
     private readonly orderItemsRepository: Repository<OrderItem>,
-    @InjectRepository(Product)
-    private readonly productsRepository: Repository<Product>,
+    @InjectRepository(ProductVariant)
+    private readonly variantsRepository: Repository<ProductVariant>,
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,
     private readonly dataSource: DataSource,
@@ -31,28 +31,29 @@ export class OrdersService {
     const orderItems: OrderItem[] = [];
 
     for (const item of items) {
-      const product = await manager.findOne(Product, {
-        where: { id: item.productId },
+      const variant = await manager.findOne(ProductVariant, {
+        where: { id: item.variantId },
+        relations: { product: true },
       });
-      if (!product) {
-        throw new NotFoundException(`Produit #${item.productId} introuvable`);
+      if (!variant) {
+        throw new NotFoundException(`Variante #${item.variantId} introuvable`);
       }
-      if (product.stock < item.quantite) {
+      if (variant.stock < item.quantite) {
         throw new BadRequestException(
-          `Stock insuffisant pour "${product.nom}" (disponible: ${product.stock}, demandé: ${item.quantite})`,
+          `Stock insuffisant pour "${variant.product.nom}" (${variant.couleur} / ${variant.taille}) — disponible: ${variant.stock}, demandé: ${item.quantite}`,
         );
       }
 
-      product.stock -= item.quantite;
-      await manager.save(product);
+      variant.stock -= item.quantite;
+      await manager.save(variant);
 
       const orderItem = this.orderItemsRepository.create({
-        product,
+        variant,
         quantite: item.quantite,
-        prixUnitaire: product.prix,
+        prixUnitaire: variant.product.prix,
       });
       orderItems.push(orderItem);
-      total += Number(product.prix) * item.quantite;
+      total += Number(variant.product.prix) * item.quantite;
     }
 
     return { orderItems, total };
@@ -93,16 +94,13 @@ export class OrdersService {
     }
 
     const savedOrder = await this.dataSource.transaction(async (manager) => {
-      const { orderItems, total } = await this.buildOrderItemsAndTotal(
-        manager,
-        dto.items,
-      );
+      const { orderItems, total } = await this.buildOrderItemsAndTotal(manager, dto.items);
 
       const order = this.ordersRepository.create({
         user: null,
         clientNom: dto.clientNom,
         total,
-        statut: OrderStatus.VALIDEE, // vente déjà conclue en personne
+        statut: OrderStatus.VALIDEE,
         items: orderItems,
       });
 
@@ -115,7 +113,7 @@ export class OrdersService {
 
   async findAll(): Promise<Order[]> {
     return this.ordersRepository.find({
-      relations: { user: true, items: { product: true } },
+      relations: { user: true, items: { variant: { product: true } } },
       order: { createdAt: 'DESC' },
     });
   }
@@ -123,7 +121,7 @@ export class OrdersService {
   async findOne(id: number): Promise<Order> {
     const order = await this.ordersRepository.findOne({
       where: { id },
-      relations: { user: true, items: { product: true } },
+      relations: { user: true, items: { variant: { product: true } } },
     });
     if (!order) {
       throw new NotFoundException(`Commande #${id} introuvable`);
@@ -140,7 +138,7 @@ export class OrdersService {
   async findByUser(userId: number): Promise<Order[]> {
     return this.ordersRepository.find({
       where: { user: { id: userId } },
-      relations: { items: { product: true } },
+      relations: { items: { variant: { product: true } } },
     });
   }
 }

@@ -4,7 +4,9 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToMany,
 } from 'typeorm';
+import { ProductVariant } from './product-variant.entity';
 
 @Entity('products')
 export class Product {
@@ -20,17 +22,13 @@ export class Product {
   @Column({ type: 'numeric', precision: 10, scale: 2 })
   prix!: number;
 
-  @Column({ length: 20, nullable: true })
-  taille!: string;
-
-  @Column({ length: 50, nullable: true })
-  couleur!: string;
-
-  @Column({ default: 0 })
-  stock!: number;
-
   @Column({ nullable: true })
   imageUrl!: string;
+
+  @OneToMany(() => ProductVariant, (variant) => variant.product, {
+    cascade: true,
+  })
+  variants!: ProductVariant[];
 
   @CreateDateColumn()
   createdAt!: Date;

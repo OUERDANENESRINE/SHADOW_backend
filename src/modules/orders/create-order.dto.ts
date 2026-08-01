@@ -2,8 +2,8 @@ import { Type } from 'class-transformer';
 import { IsArray, IsNotEmpty, IsNumber, IsString, Min, ValidateNested } from 'class-validator';
 
 export class OrderItemDto {
-  @IsNumber({}, { message: "L'ID produit doit être un nombre" })
-  productId!: number;
+  @IsNumber({}, { message: "L'ID de la variante est requis" })
+  variantId!: number;
 
   @IsNumber({}, { message: 'La quantité doit être un nombre' })
   @Min(1, { message: 'La quantité doit être au moins 1' })
