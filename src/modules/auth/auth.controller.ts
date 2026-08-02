@@ -22,22 +22,22 @@ export class AuthController {
   ) {}
 
   @Post('register')
-  async register(
-    @Body() createUserDto: CreateUserDto,
-    @Res({ passthrough: true }) res: ExpressResponse,
-  ) {
-    const user = await this.usersService.create(createUserDto);
-    const { access_token, user: userData } = await this.authService.login(user);
+async register(
+  @Body() createUserDto: CreateUserDto,
+  @Res({ passthrough: true }) res: ExpressResponse,
+) {
+  const user = await this.usersService.create(createUserDto);
+  const { access_token, user: userData } = await this.authService.login(user);
 
-    res.cookie('access_token', access_token, {
-      httpOnly: true,
-      secure: false, // true en production (HTTPS uniquement)
-      sameSite: 'lax',
-      maxAge: 24 * 60 * 60 * 1000, // 24h, en millisecondes
-    });
+  res.cookie('access_token', access_token, {
+    httpOnly: true,
+    secure: false,
+    sameSite: 'lax',
+    maxAge: 24 * 60 * 60 * 1000,
+  });
 
-    return { user: userData };
-  }
+  return { user: userData };
+}
 
   @Post('login')
   async login(
