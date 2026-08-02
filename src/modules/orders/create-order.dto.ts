@@ -11,6 +11,18 @@ export class OrderItemDto {
 }
 
 export class CreateOrderDto {
+  @IsNotEmpty({ message: 'Le nom et prénom sont requis' })
+  @IsString()
+  clientNom!: string;
+
+  @IsNotEmpty({ message: 'Le numéro de téléphone est requis' })
+  @IsString()
+  telephone!: string;
+
+  @IsNotEmpty({ message: "L'adresse de livraison est requise" })
+  @IsString()
+  adresse!: string;
+
   @IsArray({ message: 'Les items doivent être un tableau' })
   @ValidateNested({ each: true })
   @Type(() => OrderItemDto)

@@ -20,7 +20,7 @@ export class ProductsService {
       nom: dto.nom,
       description: dto.description,
       prix: dto.prix,
-      imageUrl: dto.imageUrl,
+      imageUrls: dto.imageUrls || [],
       variants: dto.variants.map((v) => this.variantsRepository.create(v)),
     });
     return this.productsRepository.save(product);
@@ -47,10 +47,9 @@ export class ProductsService {
     if (dto.nom !== undefined) product.nom = dto.nom;
     if (dto.description !== undefined) product.description = dto.description;
     if (dto.prix !== undefined) product.prix = dto.prix;
-    if (dto.imageUrl !== undefined) product.imageUrl = dto.imageUrl;
+    if (dto.imageUrls !== undefined) product.imageUrls = dto.imageUrls;
 
     if (dto.variants) {
-      // On remplace entièrement l'ancienne liste de variantes par la nouvelle
       await this.variantsRepository.delete({ product: { id } });
       product.variants = dto.variants.map((v) => this.variantsRepository.create(v));
     }

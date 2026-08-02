@@ -59,23 +59,23 @@ export class OrdersService {
     return { orderItems, total };
   }
 
-  async create(userId: number, createOrderDto: CreateOrderDto): Promise<Order> {
+  async create(userId: number, dto: CreateOrderDto): Promise<Order> {
     const user = await this.usersRepository.findOne({ where: { id: userId } });
     if (!user) {
       throw new NotFoundException(`Utilisateur #${userId} introuvable`);
     }
-    if (!createOrderDto.items || createOrderDto.items.length === 0) {
+    if (!dto.items || dto.items.length === 0) {
       throw new BadRequestException('La commande doit contenir au moins un produit');
     }
 
     const savedOrder = await this.dataSource.transaction(async (manager) => {
-      const { orderItems, total } = await this.buildOrderItemsAndTotal(
-        manager,
-        createOrderDto.items,
-      );
+      const { orderItems, total } = await this.buildOrderItemsAndTotal(manager, dto.items);
 
       const order = this.ordersRepository.create({
         user,
+        clientNom: dto.clientNom,
+        telephone: dto.telephone,
+        adresse: dto.adresse,
         total,
         statut: OrderStatus.EN_ATTENTE,
         items: orderItems,

@@ -7,7 +7,9 @@ import { UsersModule } from './modules/users/users.module';
 import { ProductsModule } from './modules/products/products.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { OrderItemsModule } from './modules/order-items/order-items.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { UploadsModule } from './modules/uploads/uploads.module';
 
 @Module({
   imports: [
@@ -24,7 +26,9 @@ import { AuthModule } from './modules/auth/auth.module';
     ProductsModule,
     OrdersModule,
     OrderItemsModule,
+    NotificationsModule,
     AuthModule,
+    UploadsModule,
   ],
   controllers: [],
   providers: [],

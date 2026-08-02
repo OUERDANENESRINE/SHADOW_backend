@@ -27,6 +27,12 @@ export class Order {
   @Column({ nullable: true })
   clientNom!: string;
 
+  @Column({ nullable: true })
+  telephone!: string;
+
+  @Column({ type: 'text', nullable: true })
+  adresse!: string;
+
   @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.EN_ATTENTE })
   statut!: OrderStatus;
 

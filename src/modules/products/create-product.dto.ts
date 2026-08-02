@@ -36,8 +36,9 @@ export class CreateProductDto {
   prix!: number;
 
   @IsOptional()
-  @IsString()
-  imageUrl?: string;
+  @IsArray()
+  @IsString({ each: true })
+  imageUrls?: string[];
 
   @IsArray({ message: 'Les variantes doivent être un tableau' })
   @ValidateNested({ each: true })

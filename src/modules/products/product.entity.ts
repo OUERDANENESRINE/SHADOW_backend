@@ -22,8 +22,8 @@ export class Product {
   @Column({ type: 'numeric', precision: 10, scale: 2 })
   prix!: number;
 
-  @Column({ nullable: true })
-  imageUrl!: string;
+  @Column({ type: 'simple-array', nullable: true })
+  imageUrls!: string[];
 
   @OneToMany(() => ProductVariant, (variant) => variant.product, {
     cascade: true,
