@@ -10,10 +10,7 @@ async function bootstrap() {
 
   app.use(cookieParser());
 
-  app.useStaticAssets(join(__dirname, '..', 'uploads'), {
-    prefix: '/uploads/',
-  });
-
+  
   app.enableCors({
     origin: 'http://localhost:3001',
     credentials: true,
